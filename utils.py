@@ -1,3 +1,6 @@
+import copy
+from typing import Union
+
 import torch
 import torch.nn as nn
 
@@ -44,14 +47,19 @@ def test(net, testloader):
             correct += (predicted == labels).sum().item()
     loss /= len(testloader.dataset)
     accuracy = correct / total
-    return loss, accuracy
+    return round(loss, 5), round(accuracy, 4)
 
+
+class LossStrategy:
+    COMBINATION = 0
+    MIXTURE = 1
 
 class KnowledgeDistillationLossWithRegularization(nn.Module):
-    def __init__(self, temperature, lambda_reg):
+    def __init__(self, temperature, lambda_reg, alpha, loss_strategy):
         super(KnowledgeDistillationLossWithRegularization, self).__init__()
         self.temperature = temperature
-        self.lambda_reg = lambda_reg if lambda_reg is not None else 0
+        self.lambda_reg = lambda_reg if lambda_reg else 0
+        self.alpha = alpha  # only used in COMBINATION
         self.softmax = nn.Softmax(dim=1)
         self.log_softmax = nn.LogSoftmax(dim=1)
         self.kldiv_loss = nn.KLDivLoss(reduction='batchmean')
@@ -73,13 +81,13 @@ class KnowledgeDistillationLossWithRegularization(nn.Module):
         return loss_total
 
 
-def kd2p(model, dest_keep_ratio, server_data, kd_epochs, temperature,
+def kd2p(model, dest: Union[str, nn.Module], server_data, kd_epochs, temperature,
          l2=False, last_model=None, lambda_reg=None,
          verbose=False):
     """
-    采用知识蒸馏将模型变成指定的keep_ratio大小
+    采用知识蒸馏将模型变成指定的keep_ratio大小，若dest为Module，该函数不会改变dest
     :param model: 教师模型
-    :param dest_keep_ratio: 蒸馏后的学生模型的大小
+    :param dest: 蒸馏后的学生模型的大小dest_keep_ratio(如'3/4')并从随机初始化开始训练，或直接传入一个现成的学生模型dest_model并在此基础上开始训练
     :param server_data: 服务器上用于蒸馏的数据
     :param kd_epochs: 蒸馏的epoch次数
     :param temperature: 蒸馏温度
@@ -91,7 +99,12 @@ def kd2p(model, dest_keep_ratio, server_data, kd_epochs, temperature,
     :param verbose: 用于控制是否要输出kd_loss和l2_loss的详细信息
     :return: 蒸馏后的模型
     """
-    dest_model = type(model)(p=dest_keep_ratio).to('cuda')
+    if isinstance(dest, str):
+        dest_model = type(model)(p=dest).to('cuda')
+        # from resnet import ResNet18
+        # dest_model = ResNet18(p=dest).to('cuda')
+    else:
+        dest_model = copy.deepcopy(dest).to('cuda')
     dest_model.train()
     criterion = KnowledgeDistillationLossWithRegularization(temperature=temperature, lambda_reg=lambda_reg)
     optimizer = torch.optim.Adam(dest_model.parameters())

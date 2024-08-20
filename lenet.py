@@ -2,8 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from heflwr.nn import SSLinear, SSConv2d
-
+from submm import SSLinear, SSConv2d
 
 class LeNet(nn.Module):
     def __init__(self, p: str) -> None:

@@ -89,7 +89,7 @@ def gen_server_dataloader(dataset_name):
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
         ])
         server_dataset = datasets.CIFAR10(root='../data', train=True, download=True, transform=transform)
-        server_dataloader = torch.utils.data.DataLoader(server_dataset, batch_size=64, shuffle=True)
+        server_dataloader = torch.utils.data.DataLoader(server_dataset, batch_size=256, shuffle=True)
     elif dataset_name == "mnist":
         transform = transforms.Compose([
             transforms.Resize((32, 32)),
@@ -97,5 +97,5 @@ def gen_server_dataloader(dataset_name):
             transforms.Normalize((0.1307,), (0.3081,))
         ])
         server_dataset = datasets.MNIST(root='../data', train=True, download=True, transform=transform)
-        server_dataloader = torch.utils.data.DataLoader(server_dataset, batch_size=64, shuffle=True)
+        server_dataloader = torch.utils.data.DataLoader(server_dataset, batch_size=256, shuffle=True)
     return server_dataloader

@@ -1,8 +1,6 @@
-import torch
 import torch.nn as nn
 
-from heflwr.nn import SSLinear, SSConv2d, SSBatchNorm2d
-
+from submm import SSLinear, SSConv2d, SSBatchNorm2d
 
 class SSBasicBlock(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1,
